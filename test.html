@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Megamenu Test - PrintLab</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --fg: #0a0a0a;
+      --muted: #f4f4f5;
+      --muted-fg: #71717a;
+      --primary: #18181b;
+      --primary-fg: #fafafa;
+      --accent: #f4f4f5;
+      --border: #e4e4e7;
+      --popover: #ffffff;
+      --radius: 0.5rem;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 0.875rem; color: var(--muted-fg); margin-bottom: 24px; }
+
+    /* Search */
+    .search-wrap { position: relative; margin-bottom: 16px; }
+    .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: var(--muted-fg);
+    }
+    .search-input {
+      width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.875rem; outline: none;
+    }
+    .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(0,0,0,0.05); }
+
+    /* Navbar */
+    .megamenu-wrap { position: relative; margin-bottom: 16px; }
+    .megamenu-nav {
+      display: flex; align-items: center; gap: 2px;
+      background: rgba(244,244,245,0.4); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 4px; overflow-x: auto;
+    }
+    .megamenu-nav::-webkit-scrollbar { height: 4px; }
+    .megamenu-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .nav-btn {
+      padding: 8px 12px; border-radius: 6px; font-size: 0.875rem; font-weight: 500;
+      border: none; cursor: pointer; transition: all 0.15s;
+      display: flex; align-items: center; gap: 4px; text-align: center;
+      background: transparent; color: var(--fg); max-width: 180px;
+    }
+    .nav-btn:hover { background: var(--accent); }
+    .nav-btn.active { background: var(--primary); color: var(--primary-fg); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .nav-btn.hovered { background: var(--accent); }
+
+    .nav-btn-text {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; line-height: 1.25;
+    }
+    .nav-btn .chevron {
+      width: 12px; height: 12px; transition: transform 0.2s; flex-shrink: 0;
+    }
+    .nav-btn .chevron.open { transform: rotate(180deg); }
+
+    /* Megamenu Panel */
+    .megamenu-panel {
+      position: absolute; top: 100%; left: 0; width: 100%; z-index: 50;
+      padding-top: 4px; display: none;
+    }
+    .megamenu-panel.open { display: block; }
+    .megamenu-panel-inner {
+      background: var(--popover); border: 1px solid var(--border);
+      border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); padding: 20px;
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .panel-header h3 { font-weight: 600; }
+    .panel-header a {
+      font-size: 0.875rem; color: var(--primary); font-weight: 500;
+      text-decoration: none; cursor: pointer;
+    }
+    .panel-header a:hover { text-decoration: underline; }
+
+    .panel-grid { display: grid; gap: 24px; }
+
+    .sub-title {
+      font-size: 0.875rem; font-weight: 600; color: var(--primary);
+      margin-bottom: 10px; display: block; cursor: pointer;
+      background: none; border: none; text-align: left; padding: 0;
+    }
+    .sub-title:hover { text-decoration: underline; }
+    .sub-count { margin-left: 6px; font-size: 0.75rem; font-weight: 400; color: var(--muted-fg); }
+    .direct-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 10px; display: block; }
+
+    .product-list { list-style: none; }
+    .product-list li { margin-bottom: 2px; }
+    .product-list.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+
+    .product-btn {
+      font-size: 0.875rem; color: var(--muted-fg); background: none; border: none;
+      cursor: pointer; width: 100%; text-align: left; padding: 4px 0;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: color 0.15s;
+    }
+    .product-btn:hover { color: var(--fg); }
+    .product-btn .plus {
+      width: 14px; height: 14px; opacity: 0; transition: opacity 0.15s;
+      flex-shrink: 0; margin-left: 8px; color: var(--primary);
+    }
+    .product-btn:hover .plus { opacity: 1; }
+
+    .no-products { font-size: 0.75rem; color: var(--muted-fg); font-style: italic; }
+
+    /* Breadcrumb */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 8px; font-size: 0.875rem;
+      flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .breadcrumb a {
+      color: var(--primary); font-weight: 500; text-decoration: none; cursor: pointer;
+    }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .breadcrumb .sep { color: var(--muted-fg); font-size: 0.75rem; }
+    .breadcrumb .current { font-weight: 500; }
+    .breadcrumb .count { color: var(--muted-fg); margin-left: 4px; }
+
+    /* Product Grid */
+    .product-grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .product-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; transition: box-shadow 0.15s;
+    }
+    .product-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .product-card h4 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+    .product-card .badge {
+      display: inline-block; font-size: 0.75rem; border: 1px solid var(--border);
+      border-radius: 999px; padding: 1px 8px; color: var(--muted-fg); margin-bottom: 8px;
+    }
+    .product-card .desc { font-size: 0.8rem; color: var(--muted-fg); margin-bottom: 12px; }
+    .product-card .price { font-size: 1.1rem; font-weight: 700; }
+    .product-card .price-unit { font-size: 0.8rem; color: var(--muted-fg); }
+    .product-card .configure-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 12px; padding: 8px; border-radius: 6px;
+      background: var(--primary); color: var(--primary-fg); border: none;
+      font-size: 0.875rem; font-weight: 500; cursor: pointer;
+    }
+    .product-card .configure-btn:hover { opacity: 0.9; }
+
+    .empty-state {
+      text-align: center; padding: 32px; border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--muted-fg);
+    }
+
+    /* Mobile menu button */
+    .mobile-menu-btn {
+      display: none; align-items: center; gap: 8px; width: 100%;
+      padding: 10px 16px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; margin-bottom: 16px;
+    }
+    .mobile-menu-btn .label { flex: 1; text-align: left; }
+
+    /* Mobile overlay & drawer */
+    .mobile-overlay {
+      position: fixed; inset: 0; z-index: 50;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: none;
+    }
+    .mobile-overlay.open { display: block; }
+    .mobile-drawer {
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+      width: 85vw; max-width: 384px; background: var(--bg);
+      box-shadow: 4px 0 25px rgba(0,0,0,0.15); display: none;
+      flex-direction: column; transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    .mobile-drawer.open { display: flex; transform: translateX(0); }
+    .drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .drawer-header h3 { font-size: 1.125rem; font-weight: 600; }
+    .close-btn {
+      padding: 8px; border-radius: 6px; border: none; background: none;
+      cursor: pointer; display: flex;
+    }
+    .close-btn:hover { background: var(--muted); }
+    .drawer-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+
+    .drawer-item {
+      width: 100%; text-align: left; padding: 12px 16px; border: none;
+      background: none; font-size: 0.875rem; font-weight: 500; cursor: pointer;
+      border-bottom: 1px solid var(--border); display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .drawer-item:hover { background: var(--muted); }
+    .drawer-item.selected { background: rgba(24,24,27,0.05); color: var(--primary); }
+
+    .drawer-sub-section { background: rgba(244,244,245,0.2); padding-bottom: 8px; }
+    .drawer-see-all {
+      width: 100%; text-align: left; padding: 8px 24px; border: none;
+      background: none; font-size: 0.875rem; font-weight: 500;
+      color: var(--primary); cursor: pointer;
+    }
+    .drawer-see-all:hover { background: rgba(244,244,245,0.5); }
+
+    .drawer-sub-row { display: flex; align-items: center; }
+    .drawer-sub-btn {
+      flex: 1; text-align: left; padding: 10px 24px; border: none;
+      background: none; font-size: 0.875rem; cursor: pointer;
+    }
+    .drawer-sub-btn:hover { background: rgba(244,244,245,0.5); }
+    .drawer-sub-btn.selected { color: var(--primary); font-weight: 500; }
+    .drawer-expand-btn {
+      padding: 8px; margin-right: 8px; border-radius: 4px; border: none;
+      background: none; cursor: pointer; display: flex;
+    }
+    .drawer-expand-btn:hover { background: var(--muted); }
+    .drawer-expand-btn .chevron-right {
+      width: 14px; height: 14px; transition: transform 0.2s;
+    }
+    .drawer-expand-btn .chevron-right.open { transform: rotate(90deg); }
+
+    .drawer-products { padding: 0 12px 4px 32px; }
+    .drawer-product-btn {
+      width: 100%; text-align: left; padding: 8px 12px; border: none;
+      background: none; font-size: 0.875rem; color: var(--muted-fg);
+      cursor: pointer; border-radius: 6px; display: block;
+    }
+    .drawer-product-btn:hover { background: rgba(244,244,245,0.5); color: var(--fg); }
+    .drawer-direct-products { padding: 0 12px 4px 32px; }
+
+    /* Responsive */
+    @media (max-width: 1023px) {
+      .desktop-megamenu { display: none !important; }
+      .mobile-menu-btn { display: flex; }
+      .product-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 639px) {
+      .product-grid { grid-template-columns: 1fr; }
+      body { padding: 16px; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Nuovo Preventivo</h1>
+<p class="subtitle">Configura i prodotti e crea un preventivo per il cliente</p>
+
+<!-- Search -->
+<div class="search-wrap">
+  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+  <input class="search-input" type="text" placeholder="Cerca prodotti..." id="searchInput">
+</div>
+
+<!-- Desktop Megamenu -->
+<div class="megamenu-wrap desktop-megamenu" id="megamenuWrap">
+  <nav class="megamenu-nav" id="megamenuNav"></nav>
+  <div class="megamenu-panel" id="megamenuPanel">
+    <div class="megamenu-panel-inner" id="megamenuPanelInner"></div>
+  </div>
+</div>
+
+<!-- Mobile Menu Button -->
+<button class="mobile-menu-btn" id="mobileMenuBtn">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+  <span class="label" id="mobileMenuLabel">Tutti i Prodotti</span>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted-fg)"><path d="m9 18 6-6-6-6"/></svg>
+</button>
+
+<!-- Mobile Overlay & Drawer -->
+<div class="mobile-overlay" id="mobileOverlay"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+  <div class="drawer-header">
+    <h3>Categorie</h3>
+    <button class="close-btn" id="drawerClose">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb" id="breadcrumb" style="display:none;"></div>
+
+<!-- Product Grid -->
+<div class="product-grid" id="productGrid"></div>
+<div class="empty-state" id="emptyState" style="display:none;">Nessun prodotto trovato</div>
+
+<script>
+const CHEVRON_DOWN = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>';
+const PLUS_ICON = '<svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+const CHEVRON_RIGHT_SVG = '<svg class="chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>';
+
+const categories = [
+  {
+    id: "cat-1", name: "Piccolo formato", slug: "piccolo-formato",
+    products: [
+      { id: "p1", name: "Biglietti con Matrice", slug: "biglietti-matrice" },
+      { id: "p2", name: "Biglietti da visita", slug: "biglietti-da-visita" },
+      { id: "p3", name: "Blocchi in Carta Chimica", slug: "blocchi-carta-chimica" },
+      { id: "p4", name: "Block Notes", slug: "block-notes" },
+      { id: "p5", name: "Buste", slug: "buste" },
+      { id: "p6", name: "Carta Intestata", slug: "carta-intestata" },
+      { id: "p7", name: "Cartelle colori", slug: "cartelle-colori" },
+      { id: "p8", name: "Cartelle portadocumenti", slug: "cartelle-portadocumenti" },
+      { id: "p9", name: "Flyers e volantini", slug: "flyers-volantini" },
+      { id: "p10", name: "Inviti e cartoline", slug: "inviti-cartoline" },
+      { id: "p11", name: "Locandine", slug: "locandine" },
+      { id: "p12", name: "Planning da Tavolo", slug: "planning-tavolo" },
+      { id: "p13", name: "Tessere in PVC", slug: "tessere-pvc" },
+      { id: "p14", name: "Timbri", slug: "timbri" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-2", name: "Pieghevoli e cataloghi", slug: "pieghevoli-cataloghi",
+    products: [
+      { id: "p15", name: "Brossura Grecata e Fresata", slug: "brossura-grecata" },
+      { id: "p16", name: "Pieghevole a 2 ante", slug: "pieghevole-2-ante" },
+      { id: "p17", name: "Pieghevoli a 3 Ante", slug: "pieghevoli-3-ante" },
+      { id: "p18", name: "Punto Metallico", slug: "punto-metallico" },
+      { id: "p19", name: "Spirale Metallica", slug: "spirale-metallica" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-3", name: "Grande formato", slug: "grande-formato",
+    products: [
+      { id: "p20", name: "Banner in PET", slug: "banner-pet" },
+      { id: "p21", name: "Banner in poliestere", slug: "banner-poliestere" },
+      { id: "p22", name: "Banner in PVC", slug: "banner-pvc" },
+      { id: "p23", name: "Banner microforato", slug: "banner-microforato" },
+      { id: "p24", name: "Carta da Parati", slug: "carta-parati" },
+      { id: "p25", name: "Copri Transenne", slug: "copri-transenne" },
+      { id: "p26", name: "Flag", slug: "flag" },
+      { id: "p27", name: "Manifesti", slug: "manifesti" },
+      { id: "p28", name: "Poster 6x3", slug: "poster-6x3" },
+      { id: "p29", name: "Tele canvas", slug: "tele-canvas" },
+      { id: "p30", name: "Zerbino", slug: "zerbino" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-4", name: "Pannelli rigidi", slug: "pannelli-rigidi",
+    products: [
+      { id: "p31", name: "Bubble", slug: "bubble" },
+      { id: "p32", name: "Cartone", slug: "cartone" },
+      { id: "p33", name: "Dibond® Alluminio", slug: "dibond-alluminio" },
+      { id: "p34", name: "Forex", slug: "forex" },
+      { id: "p35", name: "Legno", slug: "legno" },
+      { id: "p36", name: "Pannello Simona", slug: "pannello-simona" },
+      { id: "p37", name: "Plexiglass Opalino", slug: "plexiglass-opalino" },
+      { id: "p38", name: "Plexiglass Trasparente", slug: "plexiglass-trasparente" },
+      { id: "p39", name: "Polionda", slug: "polionda" },
+      { id: "p40", name: "Targhe", slug: "targhe" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-5", name: "Etichette e Adesivi", slug: "etichette-adesivi",
+    products: [
+      { id: "p41", name: "Adesivi Calpestabili per Pavimenti", slug: "adesivi-calpestabili" },
+      { id: "p42", name: "Adesivi Elettrostatici", slug: "adesivi-elettrostatici" },
+      { id: "p43", name: "Adesivi Magnetici in PVC", slug: "adesivi-magnetici" },
+      { id: "p44", name: "Adesivi Microforato (One Way)", slug: "adesivi-microforato" },
+      { id: "p45", name: "Adesivi Murali per Pareti", slug: "adesivi-murali" },
+      { id: "p46", name: "Adesivi Olografici", slug: "adesivi-olografici" },
+      { id: "p47", name: "Adesivi per Superfici Irregolari", slug: "adesivi-superfici-irregolari" },
+      { id: "p48", name: "Adesivi per Superfici Piane", slug: "adesivi-superfici-piane" },
+      { id: "p49", name: "Adesivi per Vetrine - Vetrofanie", slug: "adesivi-vetrofanie" },
+      { id: "p50", name: "Adesivi Riposizionabili", slug: "adesivi-riposizionabili" },
+      { id: "p51", name: "Adesivi Sabbiati", slug: "adesivi-sabbiati" },
+      { id: "p52", name: "Pellicole controllo solare", slug: "pellicole-controllo-solare" },
+      { id: "p53", name: "Sticker Adesivi", slug: "sticker-adesivi" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-6", name: "Espositori", slug: "espositori",
+    products: [],
+    children: [
+      { id: "sub-6a", name: "Espositori da banco", slug: "espositori-banco",
+        products: [
+          { id: "p54", name: "Cartelli vetrina", slug: "cartelli-vetrina" },
+          { id: "p55", name: "Espositore 1", slug: "espositore-1" },
+          { id: "p56", name: "Porta flyer da banco", slug: "porta-flyer-banco" },
+        ]},
+      { id: "sub-6b", name: "Espositori da terra", slug: "espositori-terra",
+        products: [
+          { id: "p57", name: "Espositore 2", slug: "espositore-2" },
+          { id: "p58", name: "Porta flyer", slug: "porta-flyer" },
+        ]},
+    ]
+  },
+  {
+    id: "cat-7", name: "Strutture espositive", slug: "strutture-espositive",
+    products: [
+      { id: "p59", name: "Backdrop", slug: "backdrop" },
+      { id: "p60", name: "Bandiere", slug: "bandiere" },
+      { id: "p61", name: "Desk promozionali", slug: "desk-promozionali" },
+      { id: "p62", name: "Roll-up", slug: "roll-up" },
+      { id: "p63", name: "Totem 1", slug: "totem-1" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-8", name: "Horeca", slug: "horeca",
+    products: [
+      { id: "p64", name: "Menu", slug: "menu" },
+      { id: "p65", name: "Porta tovaglioli", slug: "porta-tovaglioli" },
+      { id: "p66", name: "Portaconto", slug: "portaconto" },
+      { id: "p67", name: "Segnatavolo", slug: "segnatavolo" },
+      { id: "p68", name: "Sottobicchieri", slug: "sottobicchieri" },
+      { id: "p69", name: "Tovagliette", slug: "tovagliette" },
+    ],
+    children: [
+      { id: "sub-8a", name: "Food Packaging", slug: "food-packaging",
+        products: [
+          { id: "p70", name: "Box delivery", slug: "box-delivery" },
+          { id: "p71", name: "Porta hamburger", slug: "porta-hamburger" },
+          { id: "p72", name: "Scatola colomba", slug: "scatola-colomba" },
+          { id: "p73", name: "Scatola panettone", slug: "scatola-panettone" },
+          { id: "p74", name: "Vaschetta", slug: "vaschetta" },
+        ]},
+      { id: "sub-8b", name: "Abbigliamento", slug: "abbigliamento-horeca",
+        products: [
+          { id: "p75", name: "Berretto", slug: "berretto" },
+          { id: "p76", name: "Camicia", slug: "camicia" },
+          { id: "p77", name: "Felpa", slug: "felpa" },
+          { id: "p78", name: "Grembiule", slug: "grembiule" },
+          { id: "p79", name: "Polo", slug: "polo" },
+          { id: "p80", name: "T-shirt", slug: "t-shirt" },
+        ]},
+    ]
+  },
+  {
+    id: "cat-9", name: "Packaging", slug: "packaging",
+    products: [
+      { id: "p81", name: "Astucci", slug: "astucci" },
+      { id: "p82", name: "Automontanti", slug: "automontanti" },
+      { id: "p83", name: "Box", slug: "box" },
+    ],
+    children: []
+  },
+  {
+    id: "cat-10", name: "Gadget e Personalizzazione", slug: "gadget-personalizzazione",
+    products: [
+      { id: "p84", name: "Accendini", slug: "accendini" },
+      { id: "p85", name: "Agende", slug: "agende" },
+      { id: "p86", name: "Borracce", slug: "borracce" },
+      { id: "p87", name: "Bracciali", slug: "bracciali" },
+      { id: "p88", name: "Cavatappi", slug: "cavatappi" },
+      { id: "p89", name: "Laccio porta badge", slug: "laccio-porta-badge" },
+      { id: "p90", name: "Matite", slug: "matite" },
+      { id: "p91", name: "Penne", slug: "penne" },
+      { id: "p92", name: "Portachiavi", slug: "portachiavi" },
+      { id: "p93", name: "Sacche", slug: "sacche" },
+      { id: "p94", name: "Shopper", slug: "shopper" },
+      { id: "p95", name: "Zaino", slug: "zaino" },
+    ],
+    children: []
+  },
+];
+
+// Flatten all products for the grid
+const allProducts = [];
+categories.forEach(cat => {
+  (cat.products || []).forEach(p => allProducts.push({ ...p, categoryName: cat.name, categoryId: cat.id, parentId: null }));
+  cat.children.forEach(sub => {
+    (sub.products || []).forEach(p => allProducts.push({ ...p, categoryName: sub.name, categoryId: sub.id, parentId: cat.id }));
+  });
+});
+
+let selectedCategory = "all";
+let activeMenu = null;
+let searchQuery = "";
+let expandedMobile = new Set();
+
+// --- Desktop Megamenu ---
+function renderNav() {
+  const nav = document.getElementById("megamenuNav");
+  let html = `<button class="nav-btn ${selectedCategory === "all" ? "active" : ""}" data-cat="all" style="white-space:nowrap">Tutti</button>`;
+  categories.forEach(cat => {
+    const isActive = selectedCategory === cat.id || cat.children.some(ch => ch.id === selectedCategory);
+    const isHovered = activeMenu === cat.id;
+    html += `<button class="nav-btn ${isActive ? "active" : isHovered ? "hovered" : ""}" data-cat="${cat.id}">
+      <span class="nav-btn-text">${cat.name}</span>
+      ${CHEVRON_DOWN.replace('class="chevron"', `class="chevron ${isHovered ? "open" : ""}`)}
+    </button>`;
+  });
+  nav.innerHTML = html;
+
+  nav.querySelectorAll(".nav-btn").forEach(btn => {
+    const catId = btn.dataset.cat;
+    btn.addEventListener("click", () => { selectCategory(catId); activeMenu = null; renderPanel(); });
+    if (catId !== "all") {
+      btn.addEventListener("mouseenter", () => { activeMenu = catId; renderNav(); renderPanel(); });
+    }
+  });
+}
+
+function renderPanel() {
+  const panel = document.getElementById("megamenuPanel");
+  const inner = document.getElementById("megamenuPanelInner");
+  if (!activeMenu) { panel.classList.remove("open"); return; }
+  const cat = categories.find(c => c.id === activeMenu);
+  if (!cat) { panel.classList.remove("open"); return; }
+  panel.classList.add("open");
+
+  const directProducts = cat.products || [];
+  const hasChildren = cat.children.length > 0;
+  const sections = hasChildren ? (directProducts.length > 0 ? cat.children.length + 1 : cat.children.length) : 1;
+  const colCount = Math.min(sections, 4) || 1;
+
+  let html = `<div class="panel-header"><h3>${cat.name}</h3><a onclick="selectCategory('${cat.id}'); activeMenu=null; renderPanel();">Vedi tutti →</a></div>`;
+  html += `<div class="panel-grid" style="grid-template-columns: repeat(${colCount}, minmax(0,1fr))">`;
+
+  if (directProducts.length > 0) {
+    const fullSpan = directProducts.length > 8;
+    html += `<div ${fullSpan ? `style="grid-column:1/-1"` : ""}>`;
+    html += `<span class="direct-title">${cat.name}</span>`;
+    html += `<ul class="product-list ${fullSpan ? "two-col" : ""}">`;
+    directProducts.forEach(p => {
+      html += `<li><button class="product-btn" onclick="alert('Configura: ${p.name}')">${p.name}${PLUS_ICON}</button></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  cat.children.forEach(sub => {
+    const prods = sub.products || [];
+    html += `<div><button class="sub-title" onclick="selectCategory('${sub.id}'); activeMenu=null; renderPanel();">${sub.name}${prods.length > 0 ? `<span class="sub-count">(${prods.length})</span>` : ""}</button>`;
+    if (prods.length > 0) {
+      html += `<ul class="product-list">`;
+      prods.forEach(p => {
+        html += `<li><button class="product-btn" onclick="alert('Configura: ${p.name}')">${p.name}${PLUS_ICON}</button></li>`;
+      });
+      html += `</ul>`;
+    } else {
+      html += `<p class="no-products">Nessun prodotto</p>`;
+    }
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  inner.innerHTML = html;
+}
+
+document.getElementById("megamenuWrap").addEventListener("mouseleave", () => {
+  activeMenu = null; renderNav(); renderPanel();
+});
+
+// --- Mobile Drawer ---
+function renderDrawer() {
+  const body = document.getElementById("drawerBody");
+  let html = `<button class="drawer-item ${selectedCategory === "all" ? "selected" : ""}" onclick="selectCategory('all'); closeMobileMenu();">Tutti i Prodotti</button>`;
+
+  categories.forEach(cat => {
+    const isExpanded = expandedMobile.has(cat.id);
+    const isParentActive = selectedCategory === cat.id || cat.children.some(ch => ch.id === selectedCategory);
+    html += `<div class="border-b">`;
+    html += `<button class="drawer-item ${isParentActive ? "selected" : ""}" onclick="toggleMobileExpand('${cat.id}')">
+      <span>${cat.name}</span>
+      ${CHEVRON_DOWN.replace('class="chevron"', `class="chevron ${isExpanded ? "open" : ""}" style="width:16px;height:16px"`)}
+    </button>`;
+
+    if (isExpanded) {
+      html += `<div class="drawer-sub-section">`;
+      html += `<button class="drawer-see-all" onclick="selectCategory('${cat.id}'); closeMobileMenu();">Vedi tutti — ${cat.name}</button>`;
+
+      const directProds = cat.products || [];
+      if (directProds.length > 0) {
+        html += `<div class="drawer-direct-products">`;
+        directProds.forEach(p => {
+          html += `<button class="drawer-product-btn" onclick="alert('Configura: ${p.name}'); closeMobileMenu();">${p.name}</button>`;
+        });
+        html += `</div>`;
+      }
+
+      cat.children.forEach(sub => {
+        const subProds = sub.products || [];
+        const isSubExpanded = expandedMobile.has(sub.id);
+        html += `<div class="drawer-sub-row">`;
+        html += `<button class="drawer-sub-btn ${selectedCategory === sub.id ? "selected" : ""}" onclick="selectCategory('${sub.id}'); closeMobileMenu();">
+          ${sub.name}${subProds.length > 0 ? ` <span style="font-size:0.75rem;color:var(--muted-fg)">(${subProds.length})</span>` : ""}
+        </button>`;
+        if (subProds.length > 0) {
+          html += `<button class="drawer-expand-btn" onclick="toggleMobileExpand('${sub.id}')">
+            ${CHEVRON_RIGHT_SVG.replace('class="chevron-right"', `class="chevron-right ${isSubExpanded ? "open" : ""}`)}
+          </button>`;
+        }
+        html += `</div>`;
+        if (isSubExpanded && subProds.length > 0) {
+          html += `<div class="drawer-products">`;
+          subProds.forEach(p => {
+            html += `<button class="drawer-product-btn" onclick="alert('Configura: ${p.name}'); closeMobileMenu();">${p.name}</button>`;
+          });
+          html += `</div>`;
+        }
+      });
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+function toggleMobileExpand(id) {
+  if (expandedMobile.has(id)) expandedMobile.delete(id);
+  else expandedMobile.add(id);
+  renderDrawer();
+}
+
+function openMobileMenu() {
+  document.getElementById("mobileOverlay").classList.add("open");
+  document.getElementById("mobileDrawer").classList.add("open");
+  renderDrawer();
+}
+function closeMobileMenu() {
+  document.getElementById("mobileOverlay").classList.remove("open");
+  document.getElementById("mobileDrawer").classList.remove("open");
+  renderAll();
+}
+document.getElementById("mobileMenuBtn").addEventListener("click", openMobileMenu);
+document.getElementById("mobileOverlay").addEventListener("click", closeMobileMenu);
+document.getElementById("drawerClose").addEventListener("click", closeMobileMenu);
+
+// --- Category Selection & Filtering ---
+function selectCategory(catId) {
+  selectedCategory = catId;
+  renderAll();
+}
+
+function getSelectedCategoryName() {
+  if (selectedCategory === "all") return "Tutti i Prodotti";
+  for (const cat of categories) {
+    if (cat.id === selectedCategory) return cat.name;
+    for (const ch of cat.children) {
+      if (ch.id === selectedCategory) return ch.name;
+    }
+  }
+  return "Tutti i Prodotti";
+}
+
+function getFilteredProducts() {
+  const query = searchQuery.toLowerCase();
+  return allProducts.filter(p => {
+    const matchesSearch = !query || p.name.toLowerCase().includes(query) || p.categoryName.toLowerCase().includes(query);
+    let matchesCategory = true;
+    if (selectedCategory !== "all") {
+      const parent = categories.find(c => c.id === selectedCategory);
+      if (parent) {
+        const childIds = parent.children.map(ch => ch.id);
+        matchesCategory = p.categoryId === parent.id || childIds.includes(p.categoryId);
+      } else {
+        matchesCategory = p.categoryId === selectedCategory;
+      }
+    }
+    return matchesSearch && matchesCategory;
+  });
+}
+
+function renderBreadcrumb() {
+  const el = document.getElementById("breadcrumb");
+  if (selectedCategory === "all") { el.style.display = "none"; return; }
+  el.style.display = "flex";
+  const filtered = getFilteredProducts();
+  let html = `<a onclick="selectCategory('all')">Tutti</a><span class="sep">›</span>`;
+
+  const parentCat = categories.find(c => c.id === selectedCategory || c.children.some(ch => ch.id === selectedCategory));
+  if (parentCat) {
+    if (parentCat.id === selectedCategory) {
+      html += `<span class="current">${parentCat.name}</span>`;
+    } else {
+      const child = parentCat.children.find(ch => ch.id === selectedCategory);
+      html += `<a onclick="selectCategory('${parentCat.id}')">${parentCat.name}</a><span class="sep">›</span>`;
+      html += `<span class="current">${child?.name}</span>`;
+    }
+  }
+  html += `<span class="count">(${filtered.length} ${filtered.length === 1 ? "prodotto" : "prodotti"})</span>`;
+  el.innerHTML = html;
+}
+
+function renderProductGrid() {
+  const grid = document.getElementById("productGrid");
+  const empty = document.getElementById("emptyState");
+  const filtered = getFilteredProducts();
+
+  if (filtered.length === 0) { grid.innerHTML = ""; empty.style.display = "block"; return; }
+  empty.style.display = "none";
+
+  const fmt = n => new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(n);
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card">
+      <h4>${p.name}</h4>
+      <span class="badge">${p.categoryName}</span>
+      <p class="desc">Prodotto configurabile con varianti personalizzate</p>
+      <div><span class="price">${fmt(Math.random() * 0.08 + 0.02)}</span> <span class="price-unit">/ pz da 100</span></div>
+      <button class="configure-btn" onclick="alert('Configura: ${p.name}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        Configura
+      </button>
+    </div>
+  `).join("");
+}
+
+function renderAll() {
+  renderNav();
+  renderPanel();
+  renderBreadcrumb();
+  
+  document.getElementById("mobileMenuLabel").textContent = getSelectedCategoryName();
+}
+
+document.getElementById("searchInput").addEventListener("input", e => {
+  searchQuery = e.target.value;
+ 
+  if (!searchQuery && selectedCategory === "all") document.getElementById("emptyState").style.display = "none";
+});
+
+renderAll();
+</script>
+</body>
+</html>
